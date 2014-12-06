@@ -23,6 +23,8 @@ var states = Object.freeze({
    ScoreScreen: 2
 });
 
+var newValuePool = [];
+
 var currentstate;
 
 var gravity = 0.25;
@@ -37,6 +39,8 @@ var highscore = 0;
 var pipeheight = 90;
 var pipewidth = 52;
 var pipes = new Array();
+
+var windowHeight = 420;
 
 var replayclickable = false;
 
@@ -94,7 +98,7 @@ function showSplash()
    
    //set the defaults (again)
    velocity = 0;
-   position = 180;
+   position = 180; // Vertical position of the player
    rotation = 0;
    score = 0;
    
@@ -138,7 +142,7 @@ function startGame()
    //start up our loops
    var updaterate = 1000.0 / 60.0 ; //60 times a second
    loopGameloop = setInterval(gameloop, updaterate);
-   loopPipeloop = setInterval(updatePipes, 1400);
+   loopPipeloop = setInterval(updatePipes, 1400); // TODO adjust this if the width becomes variable
    
    //jump from the start!
    playerJump();
@@ -165,10 +169,11 @@ function gameloop() {
    
    //create the bounding box
    var box = document.getElementById('player').getBoundingClientRect();
+   // TODO Adapt to new image
    var origwidth = 34.0;
    var origheight = 24.0;
    
-   var boxwidth = origwidth - (Math.sin(Math.abs(rotation) / 90) * 8);
+   var boxwidth = origwidth - (Math.sin(Math.abs(rotation) / 90) * 8); // TODO where is this 8 from?
    var boxheight = (origheight + box.height) / 2;
    var boxleft = ((box.width - boxwidth) / 2) + box.left;
    var boxtop = ((box.height - boxheight) / 2) + box.top;
@@ -463,11 +468,11 @@ function updatePipes()
    //Do any pipes need removal?
    $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove()
    
-   //add a new pipe (top height + bottom height  + pipeheight == 420) and put it in our tracker
-   var padding = 80;
-   var constraint = 420 - pipeheight - (padding * 2); //double padding (for top and bottom)
+   //add a new pipe (top height + bottom height  + pipeheight == windowHeight) and put it in our tracker
+   var padding = 80; // TODO ?
+   var constraint = windowHeight - pipeheight - (padding * 2); //double padding (for top and bottom)
    var topheight = Math.floor((Math.random()*constraint) + padding); //add lower padding
-   var bottomheight = (420 - pipeheight) - topheight;
+   var bottomheight = (windowHeight - pipeheight) - topheight;
    var newpipe = $('<div class="pipe animated"><div class="pipe_upper" style="height: ' + topheight + 'px;"></div><div class="pipe_lower" style="height: ' + bottomheight + 'px;"></div></div>');
    $("#flyarea").append(newpipe);
    pipes.push(newpipe);
