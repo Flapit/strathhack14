@@ -36,7 +36,7 @@ var jump = -4.6;
 var score = 0;
 var highscore = 0;
 
-var pipeheight = 90;
+var pipeheight = 120;
 var pipewidth = 52;
 var pipes = new Array();
 
@@ -154,7 +154,7 @@ function updatePlayer(player)
    rotation = Math.min((velocity / 10) * 90, 90);
    
    //apply rotation and position
-   $(player).css({ rotate: rotation, top: position });
+   $(player).css({rotate: rotation, top: position});
 }
 
 function gameloop() {
@@ -169,9 +169,8 @@ function gameloop() {
    
    //create the bounding box
    var box = document.getElementById('player').getBoundingClientRect();
-   // TODO Adapt to new image
-   var origwidth = 34.0;
-   var origheight = 24.0;
+   var origwidth = 58.0;
+   var origheight = 40.0;
    
    var boxwidth = origwidth - (Math.sin(Math.abs(rotation) / 90) * 8); // TODO where is this 8 from?
    var boxheight = (origheight + box.height) / 2;
