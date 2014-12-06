@@ -40,6 +40,9 @@ var pipeheight = 120;
 var pipewidth = 52;
 var pipes = new Array();
 
+var DATA_URL = "http://localhost:5000/";
+var stock_list = null;
+
 var windowHeight = 420;
 
 var replayclickable = false;
@@ -70,7 +73,27 @@ $(document).ready(function() {
    
    //start with the splash screen
    showSplash();
+   
+   getStockList();
 });
+
+
+function getStockList() {
+	stock_list = null;
+	$.ajax(DATA_URL, {"dataType": "json"}).done(function(data) {
+		stock_list = data;
+		stock_name = Object.keys(stock_list)[0];
+		getData();
+	});
+}
+
+function getData() {
+	$.ajax(DATA_URL + "historical", {"type": "POST", "data": {"stock": stock_name}}).done(function(data) {
+		for (var i = 0; i < data.historical.length; i++) {
+			newValuePool.push(data.historical[i].open);
+		}
+	});
+}
 
 function getCookie(cname)
 {
@@ -470,7 +493,8 @@ function updatePipes()
    //add a new pipe (top height + bottom height  + pipeheight == windowHeight) and put it in our tracker
    var padding = 80; // TODO ?
    var constraint = windowHeight - pipeheight - (padding * 2); //double padding (for top and bottom)
-   var topheight = Math.floor((Math.random()*constraint) + padding); //add lower padding
+   var datapoint = (newValuePool.shift(0)-150) / 100;
+   var topheight = Math.floor((datapoint*constraint) + padding); //add lower padding
    var bottomheight = (windowHeight - pipeheight) - topheight;
    var newpipe = $('<div class="pipe animated"><div class="pipe_upper" style="height: ' + topheight + 'px;"></div><div class="pipe_lower" style="height: ' + bottomheight + 'px;"></div></div>');
    $("#flyarea").append(newpipe);
