@@ -39,10 +39,13 @@
    </head>
    <body>
       <div id="gamecontainer">
-         <div class="information">
+         <div id="information">
             <h1>This is a Flappy Investor game</h1>
             <input type="button" id="closeInformation" value="Start"/>
             <p>We took an existing clone of the hugely successful Flappy Bird game, fornicated its code, replaced some of the assets, and made it fetch statistics from Bloomberg to generate the positions of the obstacles rather than getting them randomly.</p>
+            
+            <select id="stockChoice">
+            </select>
 
          </div>
          <div id="gamescreen">
@@ -60,7 +63,7 @@
                      <div id="medal"></div>
                      <div id="currentscore"></div>
                      <div id="highscore"></div>
-                     <div id="replay"><img src="assets/replay.png" alt="replay"></div>
+                     <div id="replay"><img src="assets/replay.png" alt="replay"></div><div id="menu"><img src="assets/menu.png"/></div>
                   </div>
                   
                   <!-- Pipes go here! -->

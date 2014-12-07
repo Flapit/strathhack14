@@ -35,7 +35,7 @@ function get_gaps(points) {
         var size = get_size([points[i], points[i+1], points[i+2]]);
         var padding = Math.floor(size/2);
         var position = Math.floor(padding + (max_der - derivatives[i]) / (max_der - min_der) * (height - size));
-        var delay = Math.floor((-Math.atan((points[i].volume / volume_avg) - 1) + 1) * 1000 + 300);
+        var delay = Math.floor((-Math.atan((points[i].volume / volume_avg) - 1) + 1) * 750 + 900);
         var gap = {size: size, position: position, delay: delay};
         gaps.push(gap);
     }
@@ -73,6 +73,7 @@ var stock_list = null;
 var windowHeight = 420;
 
 var replayclickable = false;
+var menuclickable = false;
 
 //sounds
 var volume = 30;
@@ -98,9 +99,6 @@ $(document).ready(function() {
    if (savedscore !== "")
       highscore = parseInt(savedscore);
 
-   //start with the splash screen
-   showSplash();
-
    getStockList();
    $("#closeInformation").prop({"disabled": "disabled"});
 });
@@ -109,18 +107,28 @@ $(document).ready(function() {
 function getStockList() {
     stock_list = null;
     $.ajax(DATA_URL, {"dataType": "json"}).done(function(data) {
-        stock_list = data;
-        stock_name = Object.keys(stock_list)[0];
-        getData();
+        stock_list = Object.keys(data);
+		var select = $("#stockChoice");
+		select.remove("option");
+		_.map(stock_list, function(stock_name) {
+			select.append($('<option value="' + stock_name + '">' + stock_name + '</option>'));
+		});
+		select.change(function(){ 
+			var stock_name = $(this).val();
+			getData(stock_name);
+		});
+		getData(stock_list[0]);
     });
 }
 
-function getData() {
+function getData(stock_name) {
+	$("#closeInformation").prop({"disabled": "disabled"});
     $.ajax(DATA_URL + "historical", {"type": "POST", "data": {"stock": stock_name}}).done(function(data) {
         pipeData = get_gaps(data.historical);
 		$("#closeInformation").prop({ "disabled": "" });
 		$("#closeInformation").click(function () {
-			$(".information").hide();
+			$("#information").hide();
+			showSplash();
 		});
     });
 }
@@ -195,6 +203,7 @@ function startGame()
    //start up our loops
    var updaterate = 1000.0 / 60.0 ; //60 times a second
    loopGameloop = setInterval(gameloop, updaterate);
+   nextPipeIndex = 0;
    loopPipeloop = setTimeout(updatePipes, 0);
 
    //jump from the start!
@@ -467,13 +476,13 @@ function showScore()
    soundSwoosh.play();
 
    //show the scoreboard
-   $("#scoreboard").css({ y: '40px', opacity: 0 }); //move it down so we can slide it up
-   $("#replay").css({ y: '40px', opacity: 0 });
+   $("#scoreboard, #replay, #menu").css({ y: '40px', opacity: 0 }); //move it down so we can slide it up
+//    $("#replay").css({ y: '40px', opacity: 0 });
    $("#scoreboard").transition({ y: '0px', opacity: 1}, 600, 'ease', function() {
       //When the animation is done, animate in the replay button and SWOOSH!
       soundSwoosh.stop();
       soundSwoosh.play();
-      $("#replay").transition({ y: '0px', opacity: 1}, 600, 'ease');
+      $("#replay, #menu").transition({ y: '0px', opacity: 1}, 600, 'ease');
 
       //also animate in the MEDAL! WOO!
       if(wonmedal)
@@ -485,6 +494,7 @@ function showScore()
 
    //make the replay button clickable
    replayclickable = true;
+   menuclickable = true;
 }
 
 $("#replay").click(function() {
@@ -507,6 +517,16 @@ $("#replay").click(function() {
    });
 });
 
+$("#menu").click(function() {
+   //make sure we can only click once
+   if(!menuclickable)
+      return;
+   else
+      menuclickable = false;
+   $("#scoreboard").hide();
+   $("#information").show();
+});
+
 function playerScore()
 {
    score += 1;
@@ -516,13 +536,13 @@ function playerScore()
    setBigScore();
 }
 
+var nextPipeIndex = 0;
 function updatePipes()
 {
    //Do any pipes need removal?
    $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove();
 
-
-   var pipe = pipeData.shift();
+   var pipe = pipeData[nextPipeIndex++];
    var topheight = Math.floor(pipe.position - pipe.size/2 - 10); //add lower padding
    var bottomheight = Math.floor(windowHeight - topheight - pipe.size);
    topheight -= topheight%8;
