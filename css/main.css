@@ -354,7 +354,7 @@ Screen - Game
 {
    content: "";
    position: absolute;
-   bottom: 0;
+   bottom: -10px;
    width: 52px;
    height: 26px;
    background-image: url('../assets/pipe-down.png');
@@ -374,7 +374,7 @@ Screen - Game
 {
    content: "";
    position: absolute;
-   top: 0;
+   top: -15px;
    width: 52px;
    height: 26px;
    background-image: url('../assets/pipe-up.png');

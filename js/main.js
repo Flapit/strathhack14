@@ -523,8 +523,10 @@ function updatePipes()
 
 
    var pipe = pipeData.shift();
-   var topheight = pipe.position - pipe.size/2; //add lower padding
-   var bottomheight = windowHeight - topheight - pipe.size;
+   var topheight = Math.floor(pipe.position - pipe.size/2 - 10); //add lower padding
+   var bottomheight = Math.floor(windowHeight - topheight - pipe.size);
+   topheight -= topheight%8;
+   bottomheight -= bottomheight%8+2; // MAGIC NUMBERS for pretty seamless alignment!
    var newpipe = $('<div class="pipe animated"><div class="pipe_upper" style="height: ' + topheight + 'px;"></div><div class="pipe_lower" style="height: ' + bottomheight + 'px;"></div></div>');
    $("#flyarea").append(newpipe);
    newpipe.data("gap", pipe);
