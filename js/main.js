@@ -35,7 +35,7 @@ function get_gaps(points) {
         var size = get_size([points[i], points[i+1], points[i+2]]);
         var padding = Math.floor(size/2);
         var position = Math.floor(padding + (max_der - derivatives[i]) / (max_der - min_der) * (height - size));
-        var delay = Math.floor((-Math.atan((points[i].volume / volume_avg) - 1) + 1) * 2e3);
+        var delay = Math.floor((-Math.atan((points[i].volume / volume_avg) - 1) + 1) * 1000 + 300);
         var gap = {size: size, position: position, delay: delay};
         gaps.push(gap);
     }
