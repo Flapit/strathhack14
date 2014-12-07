@@ -21,20 +21,29 @@ function aver(dic) {
     return (dic['open'] + dic['close']);
 }
 
+function avg(lst, key) {
+	var sum = 0;
+	for (item of lst) {
+		sum += item[key];
+	}
+	var avg = sum/lst.length;
+	return avg;
+}
+
 // returns the list of gap data
 function gaps(list) { 
     var result = [];
 
-	
 	var maximum = 222;
 	var minimum = 100;
 	var alpha = 1;
 	var beta = 0.89;
 
-	
 	var maxv = 0;
     var minv = 10e7;
     var height = 420;
+	
+	var avg_vol = avg(list, "volume");
 	
     if (list.length < 3) { return []; }
     
@@ -51,19 +60,15 @@ function gaps(list) {
         var gapsize = Math.ceil(minimum + (maximum - minimum)/(alpha*Math.pow(change,beta) + 1));
 		
 		var padding = Math.floor(gapsize/2);
-        var blah = (aver(list[i]) - minv)/(maxv - minv); 
+        var blah = (aver(list[i]) - minv)/(maxv - minv);
+		
+		var delay = (Math.atan(((list[i].volume / avg_vol) - 1) * 2) + 1.4) * 10 * 78 + 32;
 		
         var gappos = Math.ceil((height - 2*padding)*Math.pow(blah,(2.5)) + padding);
-		result.push({"size": gapsize, "pos": gappos});
+		result.push({"size": gapsize, "pos": gappos, "delay": delay});
     }
     return result;
 }
-
-
-
-
-
-
 
 var debugmode = false;
 
@@ -213,7 +218,7 @@ function startGame()
    //start up our loops
    var updaterate = 1000.0 / 60.0 ; //60 times a second
    loopGameloop = setInterval(gameloop, updaterate);
-   loopPipeloop = setInterval(updatePipes, 1400); // TODO adjust this if the width becomes variable
+   loopPipeloop = setTimeout(updatePipes, 000); // TODO adjust this if the width becomes variable
    
    //jump from the start!
    playerJump();
@@ -437,7 +442,7 @@ function playerDead()
 
    //destroy our gameloops
    clearInterval(loopGameloop);
-   clearInterval(loopPipeloop);
+   clearTimeout(loopPipeloop);
    loopGameloop = null;
    loopPipeloop = null;
 
@@ -547,6 +552,8 @@ function updatePipes()
    $("#flyarea").append(newpipe);
    newpipe.data("gap", pipe);
    pipes.push(newpipe);
+   
+   loopPipeloop = setTimeout(updatePipes, pipe.delay);
 }
 
 var isIncompatible = {
