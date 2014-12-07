@@ -1,73 +1,45 @@
-/*
-   Copyright 2014 Nebez Briefkani
-   floppybird - main.js
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
-
-
-// returns average value of a record in BlooomData (loljknotreallybutwhocares)
-function aver(dic) {
-    return (dic['open'] + dic['close']);
+function average(point) {
+    return (point.open + point.close) / 2;
 }
 
-function avg(lst, key) {
-	var sum = 0;
-	for (item of lst) {
-		sum += item[key];
-	}
-	var avg = sum/lst.length;
-	return avg;
+function get_size(points) {
+    var alpha = 1,
+        beta = 0.89,
+        maximum = 222,
+        minimum = 100;
+
+    var change = Math.abs(average(points[0]) - 2*average(points[1]) + average(points[2]));
+    var size = minimum + (maximum - minimum) / (alpha * Math.pow(change, beta) + 1);
+    return Math.ceil(size);
 }
 
-// returns the list of gap data
-function gaps(list) { 
-    var result = [];
-
-	var maximum = 222;
-	var minimum = 100;
-	var alpha = 1;
-	var beta = 0.89;
-
-	var maxv = 0;
-    var minv = 10e7;
-    var height = 420;
-	
-	var avg_vol = avg(list, "volume");
-	
-    if (list.length < 3) { return []; }
-    
-    // finds minimum and maximum value
-    for (i=0; i < list.length - 2; i++) {
-        var av = aver(list[i]);
-        if (av > maxv) { maxv = av; }
-        if (av < minv) { minv = av; }
+function get_derivatives(points) {
+    var derivatives = [];
+    for (i=0; i < points.length - 1; i++) {
+        derivatives.push(average(points[i+1]) / average(points[i]) - 1);
     }
+    return derivatives;
+}
 
-    // scales
-    for (i=0; i < list.length - 2; i++) {
-		var change = Math.abs(aver(list[i]) - 2*aver(list[i+1]) + aver(list[i+2]));
-        var gapsize = Math.ceil(minimum + (maximum - minimum)/(alpha*Math.pow(change,beta) + 1));
-		
-		var padding = Math.floor(gapsize/2);
-        var blah = (aver(list[i]) - minv)/(maxv - minv);
-		
-		var delay = (Math.atan(((list[i].volume / avg_vol) - 1) * 2) + 1.4) * 10 * 78 + 32;
-		
-        var gappos = Math.ceil((height - 2*padding)*Math.pow(blah,(2.5)) + padding);
-		result.push({"size": gapsize, "pos": gappos, "delay": delay});
+function get_gaps(points) {
+    if (points.length < 3) { return []; }
+
+    var derivatives = get_derivatives(points),
+        min_der = _.min(derivatives),
+        max_der = _.max(derivatives),
+        volume_avg = _.reduce(points, function(memo, point) { return memo + point.volume; }, 0) / points.length;
+        height = 420;
+
+    var gaps = [];
+    for (i = 0; i < points.length - 2; i++) {
+        var size = get_size([points[i], points[i+1], points[i+2]]);
+        var padding = Math.floor(size/2);
+        var position = Math.floor(padding + (max_der - derivatives[i]) / (max_der - min_der) * (height - size));
+        var delay = Math.floor((-Math.atan((points[i].volume / volume_avg) - 1) + 1) * 2e3);
+        var gap = {size: size, position: position, delay: delay};
+        gaps.push(gap);
     }
-    return result;
+    return gaps;
 }
 
 var debugmode = false;
@@ -93,7 +65,7 @@ var highscore = 0;
 
 var nextpipeheight = 120;
 var pipewidth = 52;
-var pipes = new Array();
+var pipes = [];
 
 var DATA_URL = "http://localhost:5000/";
 var stock_list = null;
@@ -120,42 +92,42 @@ $(document).ready(function() {
       debugmode = true;
    if(window.location.search == "?easy")
       nextpipeheight = 200;
-   
+
    //get the highscore
    var savedscore = getCookie("highscore");
-   if(savedscore != "")
+   if (savedscore !== "")
       highscore = parseInt(savedscore);
-   
+
    //start with the splash screen
    showSplash();
-   
+
    getStockList();
 });
 
 
 function getStockList() {
-	stock_list = null;
-	$.ajax(DATA_URL, {"dataType": "json"}).done(function(data) {
-		stock_list = data;
-		stock_name = Object.keys(stock_list)[0];
-		getData();
-	});
+    stock_list = null;
+    $.ajax(DATA_URL, {"dataType": "json"}).done(function(data) {
+        stock_list = data;
+        stock_name = Object.keys(stock_list)[0];
+        getData();
+    });
 }
 
 function getData() {
-	$.ajax(DATA_URL + "historical", {"type": "POST", "data": {"stock": stock_name}}).done(function(data) {
-		pipeData = gaps(data.historical);
-	});
+    $.ajax(DATA_URL + "historical", {"type": "POST", "data": {"stock": stock_name}}).done(function(data) {
+        pipeData = get_gaps(data.historical);
+    });
 }
 
 function getCookie(cname)
 {
    var name = cname + "=";
    var ca = document.cookie.split(';');
-   for(var i=0; i<ca.length; i++) 
+   for(var i=0; i<ca.length; i++)
    {
       var c = ca[i].trim();
-      if (c.indexOf(name)==0) return c.substring(name.length,c.length);
+      if (c.indexOf(name) === 0) return c.substring(name.length,c.length);
    }
    return "";
 }
@@ -171,28 +143,28 @@ function setCookie(cname,cvalue,exdays)
 function showSplash()
 {
    currentstate = states.SplashScreen;
-   
+
    //set the defaults (again)
    velocity = 0;
    position = 180; // Vertical position of the player
    rotation = 0;
    score = 0;
-   
+
    //update the player in preparation for the next game
    $("#player").css({ y: 0, x: 0});
    updatePlayer($("#player"));
-   
+
    soundSwoosh.stop();
    soundSwoosh.play();
-   
+
    //clear out all the pipes if there are any
    $(".pipe").remove();
-   pipes = new Array();
-   
+   pipes = [];
+
    //make everything animated again
    $(".animated").css('animation-play-state', 'running');
    $(".animated").css('-webkit-animation-play-state', 'running');
-   
+
    //fade in the splash
    $("#splash").transition({ opacity: 1 }, 2000, 'ease');
 }
@@ -200,14 +172,14 @@ function showSplash()
 function startGame()
 {
    currentstate = states.GameScreen;
-   
+
    //fade out the splash
    $("#splash").stop();
    $("#splash").transition({ opacity: 0 }, 500, 'ease');
-   
+
    //update the big score
    setBigScore();
-   
+
    //debug mode?
    if(debugmode)
    {
@@ -218,8 +190,8 @@ function startGame()
    //start up our loops
    var updaterate = 1000.0 / 60.0 ; //60 times a second
    loopGameloop = setInterval(gameloop, updaterate);
-   loopPipeloop = setTimeout(updatePipes, 000); // TODO adjust this if the width becomes variable
-   
+   loopPipeloop = setTimeout(updatePipes, 0);
+
    //jump from the start!
    playerJump();
 }
@@ -228,33 +200,33 @@ function updatePlayer(player)
 {
    //rotation
    rotation = Math.min((velocity / 10) * 90, 90);
-   
+
    //apply rotation and position
    $(player).css({rotate: rotation, top: position});
 }
 
 function gameloop() {
    var player = $("#player");
-   
+
    //update the player speed/position
    velocity += gravity;
    position += velocity;
-   
+
    //update the player
    updatePlayer(player);
-   
+
    //create the bounding box
    var box = document.getElementById('player').getBoundingClientRect();
    var origwidth = 58.0;
    var origheight = 40.0;
-   
+
    var boxwidth = origwidth - (Math.sin(Math.abs(rotation) / 90) * 8); // TODO where is this 8 from?
    var boxheight = (origheight + box.height) / 2;
    var boxleft = ((box.width - boxwidth) / 2) + box.left;
    var boxtop = ((box.height - boxheight) / 2) + box.top;
    var boxright = boxleft + boxwidth;
    var boxbottom = boxtop + boxheight;
-   
+
    //if we're in debug mode, draw the bounding box
    if(debugmode)
    {
@@ -264,33 +236,33 @@ function gameloop() {
       boundingbox.css('height', boxheight);
       boundingbox.css('width', boxwidth);
    }
-   
+
    //did we hit the ground?
    if(box.bottom >= $("#land").offset().top)
    {
       playerDead();
       return;
    }
-   
+
    //have they tried to escape through the ceiling? :o
    var ceiling = $("#ceiling");
    if(boxtop <= (ceiling.offset().top + ceiling.height()))
       position = 0;
-   
+
    //we can't go any further without a pipe
-   if(pipes[0] == null)
+   if (pipes[0] === null)
       return;
-   
+
    //determine the bounding box of the next pipes inner area
    var nextpipe = pipes[0];
-   var nextpipe_gapdata = nextpipe.data("gap")
+   var nextpipe_gapdata = nextpipe.data("gap");
    var nextpipeupper = nextpipe.children(".pipe_upper");
-   
+
    var pipetop = nextpipeupper.offset().top + nextpipeupper.height();
    var pipeleft = nextpipeupper.offset().left - 2; // for some reason it starts at the inner pipes offset, not the outer pipes.
    var piperight = pipeleft + pipewidth;
    var pipebottom = pipetop + nextpipe_gapdata.size;
-   
+
    if(debugmode)
    {
       var boundingbox = $("#pipebox");
@@ -299,7 +271,7 @@ function gameloop() {
       boundingbox.css('height', nextpipe_gapdata.size);
       boundingbox.css('width', pipewidth);
    }
-   
+
    //have we gotten inside the pipe yet?
    if(boxright > pipeleft)
    {
@@ -307,7 +279,7 @@ function gameloop() {
       if(boxtop > pipetop && boxbottom < pipebottom)
       {
          //yeah! we're within bounds
-         
+
       }
       else
       {
@@ -316,14 +288,14 @@ function gameloop() {
          return;
       }
    }
-   
-   
+
+
    //have we passed the imminent danger?
    if(boxleft > piperight)
    {
       //yes, remove it
       pipes.splice(0, 1);
-      
+
       //and score a point
       playerScore();
    }
@@ -372,10 +344,10 @@ function setBigScore(erase)
 {
    var elemscore = $("#bigscore");
    elemscore.empty();
-   
+
    if(erase)
       return;
-   
+
    var digits = score.toString().split('');
    for(var i = 0; i < digits.length; i++)
       elemscore.append("<img src='assets/font_big_" + digits[i] + ".png' alt='" + digits[i] + "'>");
@@ -385,7 +357,7 @@ function setSmallScore()
 {
    var elemscore = $("#currentscore");
    elemscore.empty();
-   
+
    var digits = score.toString().split('');
    for(var i = 0; i < digits.length; i++)
       elemscore.append("<img src='assets/font_small_" + digits[i] + ".png' alt='" + digits[i] + "'>");
@@ -395,7 +367,7 @@ function setHighScore()
 {
    var elemscore = $("#highscore");
    elemscore.empty();
-   
+
    var digits = highscore.toString().split('');
    for(var i = 0; i < digits.length; i++)
       elemscore.append("<img src='assets/font_small_" + digits[i] + ".png' alt='" + digits[i] + "'>");
@@ -405,11 +377,11 @@ function setMedal()
 {
    var elemmedal = $("#medal");
    elemmedal.empty();
-   
+
    if(score < 10)
       //signal that no medal has been won
       return false;
-   
+
    if(score >= 10)
       medal = "bronze";
    if(score >= 20)
@@ -418,9 +390,9 @@ function setMedal()
       medal = "gold";
    if(score >= 40)
       medal = "platinum";
-   
+
    elemmedal.append('<img src="assets/medal_' + medal +'.png" alt="' + medal +'">');
-   
+
    //signal that a medal has been won
    return true;
 }
@@ -430,13 +402,13 @@ function playerDead()
    //stop animating everything!
    $(".animated").css('animation-play-state', 'paused');
    $(".animated").css('-webkit-animation-play-state', 'paused');
-   
+
    //drop the bird to the floor
    var playerbottom = $("#player").position().top + $("#player").width(); //we use width because he'll be rotated 90 deg
    var floor = $("#flyarea").height();
    var movey = Math.max(0, floor - playerbottom);
    $("#player").transition({ y: movey + 'px', rotate: 90}, 1000, 'easeInOutCubic');
-   
+
    //it's time to change states. as of now we're considered ScoreScreen to disable left click/flying
    currentstate = states.ScoreScreen;
 
@@ -467,10 +439,10 @@ function showScore()
 {
    //unhide us
    $("#scoreboard").css("display", "block");
-   
+
    //remove the big score
    setBigScore(true);
-   
+
    //have they beaten their high score?
    if(score > highscore)
    {
@@ -479,16 +451,16 @@ function showScore()
       //save it!
       setCookie("highscore", highscore, 999);
    }
-   
+
    //update the scoreboard
    setSmallScore();
    setHighScore();
    var wonmedal = setMedal();
-   
+
    //SWOOSH!
    soundSwoosh.stop();
    soundSwoosh.play();
-   
+
    //show the scoreboard
    $("#scoreboard").css({ y: '40px', opacity: 0 }); //move it down so we can slide it up
    $("#replay").css({ y: '40px', opacity: 0 });
@@ -497,7 +469,7 @@ function showScore()
       soundSwoosh.stop();
       soundSwoosh.play();
       $("#replay").transition({ y: '0px', opacity: 1}, 600, 'ease');
-      
+
       //also animate in the MEDAL! WOO!
       if(wonmedal)
       {
@@ -505,7 +477,7 @@ function showScore()
          $("#medal").transition({ opacity: 1, scale: 1 }, 1200, 'ease');
       }
    });
-   
+
    //make the replay button clickable
    replayclickable = true;
 }
@@ -519,12 +491,12 @@ $("#replay").click(function() {
    //SWOOSH!
    soundSwoosh.stop();
    soundSwoosh.play();
-   
+
    //fade out the scoreboard
    $("#scoreboard").transition({ y: '-40px', opacity: 0}, 1000, 'ease', function() {
       //when that's done, display us back to nothing
       $("#scoreboard").css("display", "none");
-      
+
       //start the game over!
       showSplash();
    });
@@ -542,17 +514,17 @@ function playerScore()
 function updatePipes()
 {
    //Do any pipes need removal?
-   $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove()
-   
+   $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove();
+
 
    var pipe = pipeData.shift();
-   var topheight = pipe.pos - pipe.size/2; //add lower padding
+   var topheight = pipe.position - pipe.size/2; //add lower padding
    var bottomheight = windowHeight - topheight - pipe.size;
    var newpipe = $('<div class="pipe animated"><div class="pipe_upper" style="height: ' + topheight + 'px;"></div><div class="pipe_lower" style="height: ' + bottomheight + 'px;"></div></div>');
    $("#flyarea").append(newpipe);
    newpipe.data("gap", pipe);
    pipes.push(newpipe);
-   
+
    loopPipeloop = setTimeout(updatePipes, pipe.delay);
 }
 
