@@ -102,6 +102,7 @@ $(document).ready(function() {
    showSplash();
 
    getStockList();
+   $("#closeInformation").prop({"disabled": "disabled"});
 });
 
 
@@ -117,6 +118,10 @@ function getStockList() {
 function getData() {
     $.ajax(DATA_URL + "historical", {"type": "POST", "data": {"stock": stock_name}}).done(function(data) {
         pipeData = get_gaps(data.historical);
+		$("#closeInformation").prop({ "disabled": "" });
+		$("#closeInformation").click(function () {
+			$(".information").hide();
+		});
     });
 }
 
@@ -316,9 +321,9 @@ $(document).keydown(function(e){
 
 //Handle mouse down OR touch start
 if("ontouchstart" in window)
-   $(document).on("touchstart", screenClick);
+   $("#gamescreen").on("touchstart", screenClick);
 else
-   $(document).on("mousedown", screenClick);
+   $("#gamescreen").on("mousedown", screenClick);
 
 function screenClick()
 {
