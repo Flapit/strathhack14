@@ -15,6 +15,56 @@
    limitations under the License.
 */
 
+
+// returns average value of a record in BlooomData (loljknotreallybutwhocares)
+function aver(dic) {
+    return (dic['open'] + dic['close']);
+}
+
+// returns the list of gap data
+function gaps(list) { 
+    var result = [];
+
+	
+	var maximum = 222;
+	var minimum = 100;
+	var alpha = 1;
+	var beta = 0.89;
+
+	
+	var maxv = 0;
+    var minv = 10e7;
+    var height = 420;
+	
+    if (list.length < 3) { return []; }
+    
+    // finds minimum and maximum value
+    for (i=0; i < list.length - 2; i++) {
+        var av = aver(list[i]);
+        if (av > maxv) { maxv = av; }
+        if (av < minv) { minv = av; }
+    }
+
+    // scales
+    for (i=0; i < list.length - 2; i++) {
+		var change = Math.abs(aver(list[i]) - 2*aver(list[i+1]) + aver(list[i+2]));
+        var gapsize = Math.ceil(minimum + (maximum - minimum)/(alpha*Math.pow(change,beta) + 1));
+		
+		var padding = Math.floor(gapsize/2);
+        var blah = (aver(list[i]) - minv)/(maxv - minv); 
+		
+        var gappos = Math.ceil((height - 2*padding)*Math.pow(blah,(2.5)) + padding);
+		result.push({"size": gapsize, "pos": gappos});
+    }
+    return result;
+}
+
+
+
+
+
+
+
 var debugmode = false;
 
 var states = Object.freeze({
@@ -23,7 +73,7 @@ var states = Object.freeze({
    ScoreScreen: 2
 });
 
-var newValuePool = [];
+var pipeData = [];
 
 var currentstate;
 
@@ -36,7 +86,7 @@ var jump = -4.6;
 var score = 0;
 var highscore = 0;
 
-var pipeheight = 120;
+var nextpipeheight = 120;
 var pipewidth = 52;
 var pipes = new Array();
 
@@ -64,7 +114,7 @@ $(document).ready(function() {
    if(window.location.search == "?debug")
       debugmode = true;
    if(window.location.search == "?easy")
-      pipeheight = 200;
+      nextpipeheight = 200;
    
    //get the highscore
    var savedscore = getCookie("highscore");
@@ -89,9 +139,7 @@ function getStockList() {
 
 function getData() {
 	$.ajax(DATA_URL + "historical", {"type": "POST", "data": {"stock": stock_name}}).done(function(data) {
-		for (var i = 0; i < data.historical.length; i++) {
-			newValuePool.push(data.historical[i].open);
-		}
+		pipeData = gaps(data.historical);
 	});
 }
 
@@ -230,19 +278,20 @@ function gameloop() {
    
    //determine the bounding box of the next pipes inner area
    var nextpipe = pipes[0];
+   var nextpipe_gapdata = nextpipe.data("gap")
    var nextpipeupper = nextpipe.children(".pipe_upper");
    
    var pipetop = nextpipeupper.offset().top + nextpipeupper.height();
    var pipeleft = nextpipeupper.offset().left - 2; // for some reason it starts at the inner pipes offset, not the outer pipes.
    var piperight = pipeleft + pipewidth;
-   var pipebottom = pipetop + pipeheight;
+   var pipebottom = pipetop + nextpipe_gapdata.size;
    
    if(debugmode)
    {
       var boundingbox = $("#pipebox");
       boundingbox.css('left', pipeleft);
       boundingbox.css('top', pipetop);
-      boundingbox.css('height', pipeheight);
+      boundingbox.css('height', nextpipe_gapdata.size);
       boundingbox.css('width', pipewidth);
    }
    
@@ -490,14 +539,13 @@ function updatePipes()
    //Do any pipes need removal?
    $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove()
    
-   //add a new pipe (top height + bottom height  + pipeheight == windowHeight) and put it in our tracker
-   var padding = 80; // TODO ?
-   var constraint = windowHeight - pipeheight - (padding * 2); //double padding (for top and bottom)
-   var datapoint = (newValuePool.shift(0)-150) / 100;
-   var topheight = Math.floor((datapoint*constraint) + padding); //add lower padding
-   var bottomheight = (windowHeight - pipeheight) - topheight;
+
+   var pipe = pipeData.shift();
+   var topheight = pipe.pos - pipe.size/2; //add lower padding
+   var bottomheight = windowHeight - topheight - pipe.size;
    var newpipe = $('<div class="pipe animated"><div class="pipe_upper" style="height: ' + topheight + 'px;"></div><div class="pipe_lower" style="height: ' + bottomheight + 'px;"></div></div>');
    $("#flyarea").append(newpipe);
+   newpipe.data("gap", pipe);
    pipes.push(newpipe);
 }
 
