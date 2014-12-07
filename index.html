@@ -32,7 +32,7 @@
       <meta property="og:image" content="http://nebez.github.io/floppybird/assets/thumb.png" />
       <meta property="og:url" content="http://nebez.github.io/floppybird/" />
       <meta property="og:site_name" content="Floppy Bird" />
-      
+
       <!-- Style sheets -->
       <link href="css/reset.css" rel="stylesheet">
       <link href="css/main.css" rel="stylesheet">
@@ -41,12 +41,37 @@
       <div id="gamecontainer">
          <div id="information">
             <h1>This is a Flappy Investor game</h1>
+
             <input type="button" id="closeInformation" value="Start"/>
-            <p>We took an existing clone of the hugely successful Flappy Bird game, fornicated its code, replaced some of the assets, and made it fetch statistics from Bloomberg to generate the positions of the obstacles rather than getting them randomly.</p>
-            
+
+            <p>We took an existing clone of the hugely successful Flappy Bird
+              game, destroyed its code, replaced some of the assets, and made it
+              fetch statistics from Bloomberg to generate the positions of the
+              obstacles rather than getting them randomly.</p>
+
+            <dl>
+              <dt>Gap sizes</dt>
+              <dd>Represent the daily "volatility" of stock value.</dd>
+
+              <dt>Gap positions</dt>
+              <dd>Represent the daily change of stock value (the increase in
+                value is represented by higher position)</dd>
+
+              <dt>Distance between coin columns</dt>
+              <dd>Represent the daily amount of transactions (less transactions
+                get more space).</dd>
+            </dl>
+
+            <h2>The more successful players are with a given stock, the more
+              stable that stock is.</h2>
+
             <select id="stockChoice">
             </select>
 
+            <a href="http://localhost:4000/">
+              <h3>Do you like it?</h3>
+              <h3>Support it's development us!</h3>
+            </a>
          </div>
          <div id="gamescreen">
             <div id="sky" class="animated">
@@ -54,18 +79,18 @@
                   <div id="ceiling" class="animated"></div>
                   <!-- This is the flying and pipe area container -->
                   <div id="player" class="bird animated"></div>
-                  
+
                   <div id="bigscore"></div>
-                  
+
                   <div id="splash"></div>
-                  
+
                   <div id="scoreboard">
                      <div id="medal"></div>
                      <div id="currentscore"></div>
                      <div id="highscore"></div>
                      <div id="replay"><img src="assets/replay.png" alt="replay"></div><div id="menu"><img src="assets/menu.png"/></div>
                   </div>
-                  
+
                   <!-- Pipes go here! -->
                </div>
             </div>
@@ -79,7 +104,7 @@
       </div>
       <div class="boundingbox" id="playerbox"></div>
       <div class="boundingbox" id="pipebox"></div>
-      
+
       <script src="js/jquery.min.js"></script>
       <script src="js/underscore.min.js"></script>
       <script src="js/jquery.transit.min.js"></script>

@@ -420,8 +420,13 @@ Screen - Game
    z-index: 101;
    padding: 3em;
 }
-#information p {
-	text-align: justify;
+#information p, #information dl {
+    text-align: left;
+}
+
+#information dt {
+    margin-top: 1em;
+    font-weight: bold;
 }
 
 #information input {
